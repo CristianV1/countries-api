@@ -9,6 +9,28 @@ const router = Router();
 router.get("/countries", async (req, res) => {
   try {
     let firstSearch = await Country.findAll();
+    if (firstSearch.length === 0) {
+      let url = "https://restcountries.com/v2/all";
+      let apiData = await axios(url)
+        .then((response) => response.data)
+        .catch((error) => {
+          console.log(error);
+        });
+
+      for (let index = 0; index < apiData.length; index++) {
+        let createdCountries = await Country.create({
+          id: apiData[index].alpha3Code,
+          name: apiData[index].name,
+          area: apiData[index].area,
+          flag: apiData[index].flags.png,
+          continent: apiData[index].region,
+          subregion: apiData[index].subregion,
+          capital: apiData[index].capital,
+          population: apiData[index].population,
+        });
+      }
+      return res.json(createdCountries);
+    }
     if (req.query.name) {
       let countries = await Country.findAll({
         where: { name: { [Op.iLike]: `${req.query.name}%` } },
@@ -26,27 +48,6 @@ router.get("/countries", async (req, res) => {
       include: [Tourism_activity],
     });
 
-    if (firstSearch.length === 0) {
-      let url = "https://restcountries.com/v2/all";
-      let apiData = await axios(url)
-        .then((response) => response.data)
-        .catch((error) => {
-          console.log(error);
-        });
-
-      for (let index = 0; index < apiData.length; index++) {
-        await Country.create({
-          id: apiData[index].alpha3Code,
-          name: apiData[index].name,
-          area: apiData[index].area,
-          flag: apiData[index].flags.png,
-          continent: apiData[index].region,
-          subregion: apiData[index].subregion,
-          capital: apiData[index].capital,
-          population: apiData[index].population,
-        });
-      }
-    }
     return res.json(countries);
   } catch (err) {
     return res.json(err);
